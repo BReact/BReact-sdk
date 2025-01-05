@@ -9,13 +9,18 @@ class ProcessInfo(BaseModel):
 
 class ServiceResult(BaseModel):
     status: str
-    result: Optional[Dict[str, Any]] = None
+    result: Optional[Union[Dict[str, Any], Any]] = None  # Can be any JSON structure
     error: Optional[str] = None
+
+    # Allow creation from dict without requiring all fields
+    model_config = {
+        "extra": "allow"
+    }
 
 class ServiceResponse(BaseModel):
     """Response from a service execution."""
-    status: str
-    result: Optional[ServiceResult] = None
+    status: str  # completed, pending, error
+    result: Optional[Union[ServiceResult, Dict[str, Any]]] = None  # Can be either a ServiceResult or raw dict
     error: Optional[str] = None
     message: Optional[str] = None
     service: Optional[str] = None

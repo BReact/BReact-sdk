@@ -1,25 +1,9 @@
-import pytest
 import asyncio
-from typing import Dict, Any
-from breact_sdk import BReactClient, BaseService
+from breact_sdk import BReactClient
 
-async def main():
-    # Initialize client
-    client = BReactClient(
-        base_url="http://localhost:8000",
-        api_key="your-api-key"
-    )
-    
+async def test_summarizer(client: BReactClient):
+    print("\nTesting pre-built summarization service...")
     try:
-        # Fetch available services
-        print("\nFetching available services...")
-        services = await client.fetch_services()
-        print(f"Found {len(services)} services:")
-        for service_id, service in services.items():
-            print(f"- {service.name} ({service_id})")
-        
-        # Test pre-built summarization service
-        print("\nTesting pre-built summarization service...")
         summarizer = await client.get_service("summarizer")
         if summarizer:
             result = await summarizer.summarize(
@@ -31,7 +15,6 @@ async def main():
                 max_length=50
             )
             print("\nSummarization result:")
-            #print(f"Full response: {result}")
             if result.status == "completed":
                 service_result = result.result
                 if service_result and service_result.status == "success":
@@ -41,9 +24,12 @@ async def main():
                     print(f"Service error: {service_result.error or 'Unknown error'}")
             else:
                 print(f"Process error: {result.error or 'Unknown error'}")
-        
-        # Test generic target analyzer service
-        print("\nTesting generic target analyzer service...")
+    except Exception as e:
+        print(f"Summarizer error: {str(e)}")
+
+async def test_target_analyzer(client: BReactClient):
+    print("\nTesting generic target analyzer service...")
+    try:
         analyzer = await client.get_service("target_analyzer")
         if analyzer:
             targets = {
@@ -81,7 +67,7 @@ AI: Great choice! I've documented the requirements we discussed, including the c
                     "additional_context": "The user is starting a new software project and needs help with the planning phase.",
                     "model_id": "mistral",
                     "options": {
-                        "tier": "basic",
+                        "tier": "standard",
                         "format": "json",
                         "temperature": 0,
                         "max_tokens": 1000
@@ -90,7 +76,7 @@ AI: Great choice! I've documented the requirements we discussed, including the c
             )
             
             print("\nTarget analysis result:")
-            if result.status == "success":
+            if result.status == "completed":
                 updated_targets = result.result
                 print("\nCompleted targets:")
                 for target in updated_targets.get("done", []):
@@ -99,10 +85,13 @@ AI: Great choice! I've documented the requirements we discussed, including the c
                 for target in updated_targets.get("todo", []):
                     print(f"- {target['target']}")
             else:
-                print(f"Analysis failed: {result.error or 'Unknown error'}")
-        
-        # Test generic service usage
-        print("\nTesting generic service usage...")
+                print(f"Process error: {result.error or 'Unknown error'}")
+    except Exception as e:
+        print(f"Target analyzer error: {str(e)}")
+
+async def test_text_analyzer(client: BReactClient):
+    print("\nTesting generic service usage...")
+    try:
         text_analyzer = await client.get_service("text_analyzer")
         if text_analyzer:
             result = await text_analyzer.execute(
@@ -110,12 +99,46 @@ AI: Great choice! I've documented the requirements we discussed, including the c
                 {"text": "This is a sample text for analysis."}
             )
             print("\nText analysis result:")
-            print(f"Word count: {result.get('word_count', 'N/A')}")
-            print(f"Character count: {result.get('char_count', 'N/A')}")
-            print(f"Average word length: {result.get('avg_word_length', 'N/A')}")
-            
+            if result.status == "completed":
+                service_result = result.result
+                if service_result and isinstance(service_result, dict):
+                    print(f"Word count: {service_result.get('word_count', 'N/A')}")
+                    print(f"Character count: {service_result.get('char_count', 'N/A')}")
+                    print(f"Average word length: {service_result.get('avg_word_length', 'N/A')}")
+                else:
+                    print(f"Service error: {result.error or 'Unknown error'}")
+            else:
+                print(f"Process error: {result.error or 'Unknown error'}")
+    except Exception as e:
+        print(f"Text analyzer error: {str(e)}")
+
+async def main():
+    # Initialize client
+    client = BReactClient(
+        base_url="http://localhost:8000",
+        api_key="your-api-key"
+    )
+    
+    try:
+        # Fetch available services
+        print("\nFetching available services...")
+        services = await client.fetch_services()
+        print(f"Found {len(services)} services:")
+        for service_id, service in services.items():
+            print(f"- {service.name} ({service_id})")
+        
+        # Run all tests in parallel
+        await asyncio.gather(
+            test_summarizer(client),
+            test_target_analyzer(client),
+            test_text_analyzer(client),
+            return_exceptions=True
+        )
+        
     except Exception as e:
         print(f"\nError occurred: {str(e)}")
-    
+    finally:
+        await client.close()
+
 if __name__ == "__main__":
     asyncio.run(main())
