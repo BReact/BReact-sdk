@@ -6,6 +6,7 @@ Official Python SDK for BReact OS, providing a simple and type-safe way to inter
 - Type-safe service interactions using Pydantic models
 - Async/await support for all operations
 - Custom service creation through base classes
+- Parallel service execution with asyncio
 - Comprehensive error handling
 - Full test coverage
 - MIT Licensed
@@ -18,27 +19,13 @@ pip install breact-sdk
 ```
 
 ### For Development (Editable Mode)
-1. Clone the repository:
 ```bash
 git clone https://github.com/breactos/breact-sdk.git
 cd breact-sdk
-```
-
-2. Create and activate a virtual environment (recommended):
-```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install in editable mode with development dependencies:
-```bash
 pip install -e ".[dev]"
 ```
-
-This installs the package in "editable" or "development" mode, meaning:
-- Changes to the source code take effect immediately without reinstalling
-- The package is installed as a reference to your source code
-- Great for development and testing changes
 
 ## Quick Start
 
@@ -47,89 +34,98 @@ This installs the package in "editable" or "development" mode, meaning:
 from breact_sdk import BReactClient
 
 async def main():
-    # Initialize the client
+    # Initialize client
     client = BReactClient(
         base_url="http://localhost:8000",
         api_key="your-api-key"
     )
     
-    # List available services
-    services = await client.get_services()
-    
-    # Execute a service
-    response = await client.execute_service(
-        "text_analyzer",
-        "analyze",
-        {"text": "Sample text"}
-    )
+    try:
+        # Fetch available services
+        services = await client.fetch_services()
+        print(f"Found {len(services)} services:")
+        for service_id, service in services.items():
+            print(f"- {service.name} ({service_id})")
+            
+        # Execute text analysis service
+        text_analyzer = await client.get_service("text_analyzer")
+        result = await text_analyzer.execute(
+            "analyze",
+            {"text": "This is a sample text for analysis."}
+        )
+        
+        if result.status == "completed":
+            service_result = result.result
+            print(f"Word count: {service_result.get('word_count')}")
+            print(f"Character count: {service_result.get('char_count')}")
+    finally:
+        await client.close()
 ```
 
-### Creating Custom Services
+### Parallel Service Execution
 ```python
-from breact_sdk import BaseService
+import asyncio
+from breact_sdk import BReactClient
 
-class CustomService(BaseService):
-    service_id = "custom_service"
+async def analyze_text(client: BReactClient):
+    try:
+        analyzer = await client.get_service("text_analyzer")
+        result = await analyzer.execute(
+            "analyze",
+            {"text": "Sample text for analysis"}
+        )
+        return result
+    except Exception as e:
+        print(f"Text analyzer error: {str(e)}")
+
+async def summarize_text(client: BReactClient):
+    try:
+        summarizer = await client.get_service("summarizer")
+        result = await summarizer.summarize(
+            text="Text to summarize",
+            max_length=50
+        )
+        return result
+    except Exception as e:
+        print(f"Summarizer error: {str(e)}")
+
+async def main():
+    client = BReactClient(
+        base_url="http://localhost:8000",
+        api_key="your-api-key"
+    )
     
-    async def custom_endpoint(self, data: str):
-        return await self.execute("custom_endpoint", {"data": data})
+    try:
+        # Run services in parallel
+        await asyncio.gather(
+            analyze_text(client),
+            summarize_text(client),
+            return_exceptions=True
+        )
+    finally:
+        await client.close()
+```
 
-# Using the custom service
+### Error Handling
+```python
+from breact_sdk import BReactClient, ServiceExecutionError
+
 async def main():
     client = BReactClient(...)
-    custom = client.register_service(CustomService)
-    result = await custom.custom_endpoint("test data")
-```
-
-## Project Structure
-```
-breact_sdk/
-├── breact_sdk/
-│   ├── sdk/
-│   │   ├── client.py          # Main BReactClient class
-│   │   ├── types/            # Type definitions
-│   │   ├── exceptions.py     # Custom exceptions
-│   │   └── utils/           # Helper utilities
-│   ├── services/            # Pre-built services
-│   └── examples/            # Usage examples
-└── tests/                   # Test suite
-```
-
-## Development
-
-### Setup Development Environment
-```bash
-# Clone the repository
-git clone https://github.com/breactos/breact-sdk.git
-cd breact-sdk
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install development dependencies
-pip install -r requirements.txt
-
-# Install package in editable mode
-pip install -e .
-```
-
-### Running Tests
-```bash
-pytest tests/
-```
-
-### Code Style
-We use:
-- Black for code formatting
-- isort for import sorting
-- mypy for type checking
-
-Format code before committing:
-```bash
-black breact_sdk/
-isort breact_sdk/
-mypy breact_sdk/
+    try:
+        result = await client.execute_service(
+            "text_analyzer",
+            "analyze",
+            {"text": "Sample text"}
+        )
+        if result.status == "completed":
+            print(result.result)
+        else:
+            print(f"Error: {result.error}")
+    except ServiceExecutionError as e:
+        print(f"Service execution failed: {e}")
+    finally:
+        await client.close()
 ```
 
 ## API Reference
@@ -139,54 +135,31 @@ mypy breact_sdk/
 client = BReactClient(
     base_url="http://localhost:8000",  # BReact OS server URL
     api_key="your-api-key",           # Optional API key
-    timeout=30                        # Request timeout in seconds
+    request_timeout=30,               # Request timeout in seconds
+    poll_interval=3.0,               # Polling interval for async operations
+    poll_timeout=180.0              # Maximum polling time
 )
 ```
 
 #### Methods
-- `async get_services()`: List available services
+- `async fetch_services()`: List available services
+- `async get_service(service_id)`: Get a specific service
 - `async execute_service(service_id, endpoint, params)`: Execute a service endpoint
-- `register_service(service_class)`: Register a custom service
+- `async close()`: Close client and cleanup resources
 
-### BaseService
-Base class for creating custom services:
-```python
-class CustomService(BaseService):
-    service_id = "required_service_id"
-    
-    async def initialize(self):
-        """Optional initialization"""
-        pass
-        
-    async def your_method(self, param: str):
-        return await self.execute("endpoint_name", {"param": param})
+## Development
+
+### Running Tests
+```bash
+pytest tests/
 ```
 
-## Error Handling
-The SDK provides several exception classes:
-```python
-from breact_sdk import (
-    BReactError,           # Base exception
-    BReactClientError,     # Client configuration errors
-    ServiceExecutionError, # Service execution failures
-    ServiceNotFoundError   # Service not found
-)
-
-try:
-    result = await client.execute_service(...)
-except ServiceExecutionError as e:
-    print(f"Service execution failed: {e}")
+### Code Style
+```bash
+black breact_sdk/
+isort breact_sdk/
+mypy breact_sdk/
 ```
-
-## Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## Documentation
-For detailed documentation, visit [docs.breactos.com](https://docs.breactos.com)
 
 ## License
 MIT License - see LICENSE file for details
@@ -195,3 +168,4 @@ MIT License - see LICENSE file for details
 - GitHub Issues: [breactos/breact-sdk/issues](https://github.com/breactos/breact-sdk/issues)
 - Documentation: [docs.breactos.com](https://docs.breactos.com)
 - Email: support@breactos.com
+

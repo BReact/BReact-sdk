@@ -198,3 +198,4 @@ pytest tests/
 - API Documentation: [docs.breactos.com](https://docs.breactos.com)
 - Issue Tracker: [GitHub Issues](https://github.com/breactos/breact-sdk/issues)
 - Support: support@breactos.com
+
