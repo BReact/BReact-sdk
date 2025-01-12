@@ -24,7 +24,7 @@ class HttpClient:
             "Content-Type": "application/json"
         }
         if api_key:
-            self.headers["Authorization"] = f"Bearer {api_key}"
+            self.headers["x-api-key"] = api_key
             
         # Use different timeouts for different types of requests
         self._client = httpx.AsyncClient(

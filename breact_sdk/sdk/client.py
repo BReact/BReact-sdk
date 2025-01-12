@@ -1,5 +1,5 @@
 from typing import Dict, Optional, Type, TypeVar, Any
-
+import os
 from breact_sdk.sdk.exceptions import ServiceExecutionError, ServiceNotFoundError
 from breact_sdk.sdk.types.responses import ServiceResponse
 from .types.services import Service, BaseService
@@ -11,20 +11,24 @@ T = TypeVar('T', bound=BaseService)
 class BReactClient:
     def __init__(
         self,
-        base_url: str,
+        base_url: str = "https://api-os.breact.ai",
         api_key: Optional[str] = None,
         request_timeout: int = 30,
         poll_interval: float = 3.0,
         poll_timeout: float = 180.0
     ):
+        # Try environment variable first, then fall back to passed api_key
+        self.api_key = os.getenv("BREACT_API_KEY") or api_key
+        if not self.api_key:
+            raise ValueError("API key must be provided either through BREACT_API_KEY environment variable or api_key parameter")
+            
         self.base_url = base_url
-        self.api_key = api_key
         self.registry = ServiceRegistry()
         self.registry.set_client(self)
         self._service_cache: Dict[str, BaseService] = {}
         self._http = HttpClient(
             base_url,
-            api_key,
+            self.api_key,
             request_timeout,
             poll_interval,
             poll_timeout

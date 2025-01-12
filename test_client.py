@@ -1,5 +1,9 @@
 import asyncio
+import os
 from breact_sdk import BReactClient
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
 
 async def test_summarizer(client: BReactClient):
     print("\nTesting pre-built summarization service...")
@@ -114,14 +118,11 @@ async def test_text_analyzer(client: BReactClient):
 
 async def main():
     # Initialize client
-    client = BReactClient(
-        base_url="http://localhost:8000",
-        api_key="your-api-key"
-    )
+    client = BReactClient()
     
     try:
         # Fetch available services
-        print("\nFetching available services...")
+        print("\nFetching available services...") # TODO: Client py init should fetch services
         services = await client.fetch_services()
         print(f"Found {len(services)} services:")
         for service_id, service in services.items():
