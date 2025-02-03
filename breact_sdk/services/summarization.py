@@ -1,9 +1,9 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from ..sdk.types.services import BaseService
 
 class SummarizationService(BaseService):
     """Pre-built service for text summarization"""
-    service_id = "summarizer"
+    service_id = "aisummary"
     
     async def initialize(self) -> None:
         """Initialize the summarization service"""
@@ -12,22 +12,30 @@ class SummarizationService(BaseService):
     async def summarize(
         self,
         text: str,
-        max_length: int = 100
+        summary_type: str = "brief",
+        model_id: Optional[str] = None,
+        options: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Summarize the given text.
         
         Args:
             text: The text to summarize
-            max_length: Maximum length of the summary in words
-
+            summary_type: Type of summary (brief, detailed, bullet_points, executive)
+            model_id: Specific model to use for summarization
+            options: Additional model parameters (temperature, max_tokens, etc.)
             
         Returns:
             Dict containing summary and metadata
         """
         params = {
             "text": text,
-            "max_length": max_length
+            "summary_type": summary_type
         }
+        
+        if model_id:
+            params["model_id"] = model_id
+        if options:
+            params["options"] = options
             
         return await self.execute("summarize", params)

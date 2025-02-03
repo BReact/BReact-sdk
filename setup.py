@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="breact-sdk",
-    version="0.1.0",
+    version="0.1.1",
     packages=find_packages(),
     install_requires=[
         "httpx>=0.24.0",
@@ -10,7 +10,7 @@ setup(
         "typing-extensions>=4.0.0",
     ],
     author="BReact OS Team",
-    author_email="team@breactos.com",
+    author_email="office@breact.ai",
     description="Official SDK for BReact OS",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

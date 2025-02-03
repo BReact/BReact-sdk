@@ -3,6 +3,9 @@ import httpx
 from ..exceptions import BReactClientError, ServiceExecutionError
 import asyncio
 from ..types.responses import ServiceResponse, ProcessResponse
+import logging
+
+logger = logging.getLogger("breact_sdk.http")
 
 class HttpClient:
     """HTTP client for making requests to BReact OS API"""
@@ -15,6 +18,7 @@ class HttpClient:
         poll_interval: float = 3.0,    # How often to poll
         poll_timeout: int = 30         # Timeout for polling requests (30s)
     ):
+        logger.info(f"Initializing HTTP client for {base_url}")
         self.base_url = base_url.rstrip('/')
         self.request_timeout = request_timeout
         self.poll_interval = poll_interval
@@ -24,7 +28,10 @@ class HttpClient:
             "Content-Type": "application/json"
         }
         if api_key:
+            logger.debug("Setting API key header")
+            # Always use x-api-key header
             self.headers["x-api-key"] = api_key
+            logger.debug(f"Headers after setting API key: {self.headers}")
             
         # Use different timeouts for different types of requests
         self._client = httpx.AsyncClient(
@@ -32,6 +39,8 @@ class HttpClient:
             headers=self.headers,
             timeout=request_timeout
         )
+        
+        logger.info("HTTP client initialized successfully")
     
     async def request(
         self,
@@ -42,6 +51,11 @@ class HttpClient:
         is_polling: bool = False
     ) -> Dict[str, Any]:
         """Make HTTP request with error handling and response parsing"""
+        logger.info(f"Making {method} request to {path}")
+        logger.debug(f"Request headers: {self._client.headers}")
+        logger.debug(f"Request params: {params}")
+        logger.debug(f"Request body: {json}")
+        
         try:
             # Use shorter timeout for polling requests
             timeout = self.poll_timeout if is_polling else self.request_timeout
@@ -54,17 +68,26 @@ class HttpClient:
                 timeout=timeout
             )
             
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response headers: {response.headers}")
+            
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            logger.debug(f"Response data: {data}")
+            return data
             
         except httpx.TimeoutException as e:
+            logger.error(f"Request timed out: {str(e)}")
             raise BReactClientError(f"Request timed out: {str(e)}")
         except httpx.HTTPError as e:
+            logger.error(f"HTTP request failed: {str(e)}")
             raise BReactClientError(f"HTTP request failed: {str(e)}")
     
     async def close(self):
         """Close the HTTP client session"""
+        logger.info("Closing HTTP client")
         await self._client.aclose()
+        logger.debug("HTTP client closed successfully")
     
     async def poll_result(
         self,
@@ -97,12 +120,14 @@ class HttpClient:
         interval: Optional[float] = None
     ) -> ServiceResponse:
         """Execute request and poll for result"""
+        logger.info(f"Executing {method} request to {path} with polling")
+        
         response = await self.request(method, path, json=json)
         process = ProcessResponse.model_validate(response)
         
-        print(f"\nSubmitted request:")
-        print(f"Process ID: {process.process_id}")
-        print(f"Access Token: {process.access_token}")
+        logger.debug(f"\nSubmitted request:")
+        logger.debug(f"Process ID: {process.process_id}")
+        logger.debug(f"Access Token: {process.access_token}")
         
         return await self.poll_result(
             process.process_id,

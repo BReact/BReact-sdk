@@ -1,5 +1,8 @@
 from typing import Dict, Optional, Type, TypeVar, TYPE_CHECKING
 from ..sdk.types.services import Service, BaseService
+from .summarization import SummarizationService
+from .target_analyzer import TargetAnalyzerService
+from .information_tracker import InformationTrackerService
 
 if TYPE_CHECKING:
     from ..sdk.client import BReactClient
@@ -43,4 +46,10 @@ class ServiceRegistry:
     
     def list_services(self) -> Dict[str, Service]:
         """List all registered services"""
-        return self._services.copy() 
+        return self._services.copy()
+
+SERVICE_REGISTRY: Dict[str, Type[BaseService]] = {
+    "aisummary": SummarizationService,
+    "target_analyzer": TargetAnalyzerService,
+    "information_tracker": InformationTrackerService,
+} 

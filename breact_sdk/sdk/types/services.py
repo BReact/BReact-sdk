@@ -70,7 +70,7 @@ class BaseService(ABC):
     async def execute(self, endpoint: str, params: Dict[str, Any]) -> Any:
         """Execute a service endpoint with parameter validation."""
         if not self._service_definition:
-            self._service_definition = await self._client.get_service(self.service_id)
+            raise ValueError(f"Service definition not found for {self.service_id}")
             
         if endpoint not in self._service_definition.endpoints:
             raise ValueError(f"Unknown endpoint '{endpoint}' for service {self.service_id}")
@@ -78,11 +78,9 @@ class BaseService(ABC):
         endpoint_def = self._service_definition.endpoints[endpoint]
         self._validate_parameters(endpoint_def, params)
         
-        return await self._client.execute_service(
-            self.service_id,
-            endpoint,
-            params
-        )
+        # Make the HTTP request directly instead of going through execute_service
+        path = f"/api/v1/services/{self.service_id}/{endpoint}"
+        return await self._client._http.execute_with_polling("POST", path, json=params)
         
     def _validate_parameters(self, endpoint: Endpoint, params: Dict[str, Any]) -> None:
         """Validate parameters against endpoint definition."""
