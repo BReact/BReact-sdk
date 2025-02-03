@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="breact-sdk",
-    version="0.1.2",
+    version="0.1.3",
     packages=find_packages(),
     install_requires=[
-        "httpx>=0.24.0",
+        "aiohttp>=3.8.0",
         "pydantic>=2.0.0",
-        "typing-extensions>=4.0.0",
         "python-dotenv>=1.0.0",
+        "httpx>=0.24.0"
     ],
     author="BReact OS Team",
     author_email="office@breact.ai",
