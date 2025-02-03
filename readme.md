@@ -21,7 +21,7 @@ pip install breact-sdk
 
 ### For Development (Editable Mode)
 ```bash
-git clone https://github.com/breactos/breact-sdk.git
+git clone https://github.com/BReact/BReact-sdk.git 
 cd breact-sdk
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
