@@ -5,7 +5,7 @@ A Python SDK for interacting with BReact's AI services, supporting both synchron
 ## Installation
 
 ```bash
-pip install breact-sdk
+pip install breactsdk
 ```
 
 ## Configuration
