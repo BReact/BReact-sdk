@@ -1,203 +1,197 @@
 # BReact SDK
 
-Official Python SDK for BReact OS, providing a simple and type-safe way to interact with BReact OS services.
-
-## Features
-- Type-safe service interactions using Pydantic models
-- Async/await support for all operations
-- Custom service creation through base classes
-- Parallel service execution with asyncio
-- Comprehensive error handling
-- Built-in services for text analysis, summarization, and email processing
-- Automatic service discovery and initialization
-- MIT Licensed
+A Python SDK for interacting with BReact's AI services, supporting both synchronous and asynchronous operations.
 
 ## Installation
 
-### From PyPI
 ```bash
-pip install breact-sdk
+pip install breactsdk
 ```
 
-### For Development (Editable Mode)
-```bash
-git clone https://github.com/breactos/breact-sdk.git
-cd breact-sdk
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -e ".[dev]"
-```
+## Configuration
 
-### Configuration
-The SDK can be configured using environment variables or programmatically when initializing the client.
+The SDK can be configured using environment variables or programmatically:
 
-#### Using Environment Variables (Recommended)
+### Environment Variables
 Create a `.env` file in your project root:
 ```env
-BREACT_API_KEY=your-api-key
-# Optional: Override the default endpoint
-# BREACT_BASE_URL=https://api-os.breact.ai
+BREACT_API_KEY=your_api_key
+BREACT_BASE_URL=https://api-os.breact.ai  # Optional, defaults to this URL
 ```
 
-Or set them in your shell:
-```bash
-export BREACT_API_KEY=your-api-key
-```
-
-Or set them in your code:
+### Programmatic Configuration
 ```python
-from breact_sdk import BReactClient
-BReactClient.create(api_key="your-api-key")
-```
+from breactsdk.client import create_client
 
-## Quick Start
-
-### Basic Usage
-```python
-from breact_sdk import BReactClient
-
-async def main():
-    # Initialize client using environment variables
-    client = await BReactClient.create()
-    
-    try:
-        # Example: Use AI Summarization
-        summary_result = await client.ai_summarize(
-            text="Your text to summarize",
-            summary_type="brief",
-            model_id="mistral-small"  # Optional: specify model
-        )
-        
-        if summary_result.status == "completed":
-            print(f"Summary: {summary_result.result}")
-            
-        # Example: Analyze Targets
-        targets_result = await client.analyze_targets(
-            text="Sample text for target analysis",
-            targets=["key_points", "sentiment"],
-            model_id="mistral-small"
-        )
-        
-        if targets_result.status == "completed":
-            print(f"Analysis: {targets_result.result}")
-            
-    finally:
-        await client.close()
-```
-
-### Email Processing Features
-```python
-async def process_emails():
-    # You can also override settings programmatically if needed
-    client = await BReactClient.create(
-        api_key="override-api-key",  # Optional: override environment variable
-        base_url="custom-endpoint"   # Optional: override default endpoint
-    )
-    
-    try:
-        # Generate email response
-        response = await client.generate_email_response(
-            email_thread=[
-                {
-                    "sender": "user@example.com",
-                    "content": "Initial email content",
-                    "timestamp": "2024-03-20T10:00:00Z"
-                }
-            ],
-            tone="professional",
-            style_guide={
-                "language": "en",
-                "max_length": 300,
-                "greeting_style": "formal"
-            }
-        )
-        
-        if response.status == "completed":
-            print(f"Generated response: {response.result}")
-            
-    finally:
-        await client.close()
-```
-
-### Information Processing
-```python
-async def process_info():
-    client = await BReactClient.create(api_key="your-api-key")
-    
-    try:
-        # Extract structured information
-        result = await client.extract_information(
-            text="Your text content",
-            schema={
-                "name": "string",
-                "age": "number",
-                "interests": "array"
-            }
-        )
-        
-        if result.status == "completed":
-            print(f"Extracted info: {result.result}")
-            
-    finally:
-        await client.close()
-```
-
-## Core Services
-
-### Text Analysis
-- Target Analysis: Analyze specific aspects of text
-- AI Summarization: Generate concise summaries
-- Information Extraction: Extract structured data from text
-
-### Email Processing
-- Response Generation: Create contextual email responses
-- Thread Analysis: Analyze email conversations
-- Style Customization: Control tone and format
-
-## API Reference
-
-### BReactClient
-The client can be initialized with or without arguments:
-
-```python
-# Using environment variables (recommended)
-client = await BReactClient.create()
-
-# Or with optional overrides
-client = await BReactClient.create(
-    base_url="https://api-os.breact.ai",  # Optional: override default endpoint
-    api_key="your-api-key",               # Optional: override BREACT_API_KEY
-    request_timeout=30,                   # Optional: default is 30
-    poll_interval=1.0,                   # Optional: default is 1.0
-    poll_timeout=180.0                  # Optional: default is 180.0
+# Create client with custom configuration
+client = create_client(
+    api_key="your_api_key",  # If not provided, the SDK will use the one from the environment variable
+    base_url="https://api-os.breact.ai"  # Optional
 )
 ```
 
-All parameters are optional when using `create()`:
-- `base_url`: Defaults to "https://api-os.breact.ai" if not specified
-- `api_key`: Uses BREACT_API_KEY environment variable if not specified
-- `request_timeout`: HTTP request timeout in seconds (default: 30)
-- `poll_interval`: Polling interval for async operations (default: 1.0)
-- `poll_timeout`: Maximum polling time (default: 180.0)
+## Usage Examples
 
-#### Key Methods
-- `async ai_summarize(text, summary_type="brief", model_id=None)`: Generate text summaries
-- `async analyze_targets(text, targets, model_id="mistral-small")`: Analyze specific aspects of text
-- `async generate_email_response(email_thread, tone="professional")`: Generate email responses
-- `async extract_information(text, schema)`: Extract structured information
-- `async close()`: Close client and cleanup resources
+### Text Summarization
 
-## Requirements
-- Python >= 3.11
-- httpx >= 0.24.0
-- pydantic >= 2.0.0
-- typing-extensions >= 4.0.0
+```python
+from breactsdk.client import create_client
 
-## License
-MIT License - see LICENSE file for details
+# Async usage
+async with create_client(async_client=True) as client:
+    summary = await client.aisummary.summarize(
+        text="Your text to summarize",
+        summary_type="executive",
+        model_id="mistral-small",
+        options={
+            "temperature": 0.7,
+            "max_tokens": 500
+        }
+    )
+
+# Sync usage
+with create_client() as client:
+    summary = client.aisummary.summarize(
+        text="Your text to summarize",
+        summary_type="executive",
+        model_id="mistral-small"
+    )
+```
+
+### Email Analysis and Response Generation
+
+```python
+async with create_client(async_client=True) as client:
+    # Analyze email thread
+    analysis = await client.email_response.analyze_thread(
+        email_thread=[{
+            "sender": "client@example.com",
+            "recipient": "support@company.com",
+            "subject": "Urgent: Service Downtime",
+            "content": "Email content here",
+            "timestamp": "2024-01-20T09:00:00Z"
+        }],
+        analysis_type=["sentiment", "key_points", "action_items", "response_urgency"]
+    )
+
+    # Generate email response
+    response = await client.email_response.generate_response(
+        email_thread=[{
+            "sender": "client@example.com",
+            "recipient": "support@company.com",
+            "subject": "Product Feature Inquiry",
+            "content": "Email content here",
+            "timestamp": "2024-01-20T10:30:00Z"
+        }],
+        tone="friendly",
+        style_guide={
+            "language": "en",
+            "max_length": 150,
+            "greeting_style": "casual",
+            "signature": "\nBest regards,\nSupport Team"
+        },
+        key_points=[
+            "Address AI capabilities",
+            "Explain pricing plans",
+            "Highlight support options"
+        ]
+    )
+```
+
+### Information Tracking
+
+```python
+# Define your schema
+schema = {
+    "type": "object",
+    "properties": {
+        "primary_symptom": {
+            "type": "string",
+            "enum": ["headache", "nausea", "dizziness"]
+        },
+        "duration": {
+            "type": "string"
+        }
+    },
+    "required": ["primary_symptom", "duration"]
+}
+
+# Process information
+async with create_client(async_client=True) as client:
+    result = await client.information_tracker.process(
+        content="Your text content",
+        context={
+            "updateType": "medical_symptoms",
+            "currentInfo": {
+                "previous_symptoms": ["mild headache"]
+            }
+        },
+        config={
+            "modelId": "mistral-large-2411",
+            "temperature": 0.1,
+            "maxTokens": 2000,
+            "schema": schema
+        }
+    )
+```
+
+### Concurrent Processing
+
+```python
+async with create_client(async_client=True) as client:
+    tasks = [
+        client.aisummary.summarize(
+            text=f"Text {i}",
+            summary_type="executive",
+            model_id="mistral-small"
+        ) for i in range(3)
+    ]
+    
+    results = await asyncio.gather(*tasks)
+```
+
+## Error Handling
+
+The SDK provides detailed error information:
+
+```python
+try:
+    result = await client.aisummary.summarize(text="Your text")
+except Exception as e:
+    if hasattr(e, 'response'):
+        print(f"Status code: {e.response.status_code}")
+        print(f"Error details: {e.response.text}")
+    print(f"Error: {str(e)}")
+```
+
+## Available Services
+
+1. **AI Summary** (`client.aisummary`)
+   - `summarize`: Generate text summaries
+
+2. **Email Response** (`client.email_response`)
+   - `analyze_thread`: Analyze email threads
+   - `generate_response`: Generate email responses
+
+3. **Information Tracker** (`client.information_tracker`)
+   - `process`: Extract structured information from text
+
+## Best Practices
+
+1. Always use context managers (`with` or `async with`) to ensure proper resource cleanup
+2. Choose between sync and async clients based on your application's needs
+3. Set appropriate timeouts and model parameters for your use case
+4. Handle errors appropriately in production code
+5. Store API keys securely using environment variables
+
+## Running the Demo
+
+A comprehensive demo script is included that showcases all features:
+
+```bash
+python demo.py
+```
 
 ## Support
-- GitHub Issues: [breactos/breact-sdk/issues](https://github.com/breactos/breact-sdk/issues)
-- Documentation: [docs.breactos.com](https://docs.breactos.com)
-- Email: office@breact.ai
 
+For issues and feature requests, please contact office@breact.ai 
