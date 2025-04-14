@@ -76,7 +76,7 @@ async def demo_text_summarization():
     print("\n=== Text Summarization Demo ===")
     async with create_client(async_client=True) as client:
         try:
-            result = await client.aisummary.summarize(
+            result = await client.summary.summarize(
                 text=SAMPLE_TEXT,
                 summary_type="executive",
                 model_id="mistral-small",
@@ -196,7 +196,7 @@ def demo_sync_usage():
     print("\n=== Synchronous Usage Demo ===")
     with create_client() as client:
         # Simple text summarization
-        result = client.aisummary.summarize(
+        result = client.summary.summarize(
             text=SAMPLE_TEXT,
             summary_type="executive",
             model_id="mistral-small"
@@ -209,7 +209,7 @@ async def demo_concurrent_processing():
     async with create_client(async_client=True) as client:
         # Process multiple texts concurrently
         tasks = [
-            client.aisummary.summarize(
+            client.summary.summarize(
                 text=f"Part {i} of the text: {SAMPLE_TEXT}",
                 summary_type="executive",
                 model_id="mistral-small"
