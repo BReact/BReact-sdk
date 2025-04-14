@@ -5,7 +5,7 @@ A Python SDK for interacting with BReact's AI services, supporting both synchron
 ## Installation
 
 ```bash
-pip install breact-sdk
+pip install breactsdk
 ```
 
 ## Configuration
@@ -36,26 +36,36 @@ client = create_client(
 
 ```python
 from breactsdk.client import create_client
+import asyncio
 
-# Async usage
-async with create_client(async_client=True) as client:
-    summary = await client.aisummary.summarize(
-        text="Your text to summarize",
-        summary_type="executive",
-        model_id="mistral-small",
-        options={
-            "temperature": 0.7,
-            "max_tokens": 500
-        }
-    )
+# Initialize the client
+client = create_client(
+    api_key="your_api_key",
+    base_url="https://api-os.breact.ai",
+    async_client=True
+)
+    
+async def summarize_text():
+    try:
+        async with client:
+            # Generate text summary
+            result = await client.summary.summarize(
+                model_id="openai/gpt-4o",
+                text='''One morning, when Gregor Samsa woke from troubled dreams, he found himself transformed in his bed into a horrible vermin. He lay on his armour-like back, and if he lifted his head a little he could see his brown belly, slightly domed and divided by arches into stiff sections. The bedding was hardly able to cover it and seemed ready to slide off any moment. His many legs, pitifully thin compared with the size of the rest of him, waved about helplessly as he looked. "What's happened to me?" he thought. It wasn't a dream.''',
+                summary_type="brief",  # Options: "brief", "detailed", "bullet_points", "executive"
+                max_words=200,  # Optional: control summary length
+                output_format="json"  # Options: "paragraph", "bullets", "json"
+            )
+            
+            print(result)
+    except Exception as e:
+        print(f"Error occurred: {str(e)}")
+        if hasattr(e, 'response'):
+            print(f"Status code: {e.response.status_code}")
+            print(f"Error details: {e.response.text}")
 
-# Sync usage
-with create_client() as client:
-    summary = client.aisummary.summarize(
-        text="Your text to summarize",
-        summary_type="executive",
-        model_id="mistral-small"
-    )
+asyncio.run(summarize_text())
+ 
 ```
 
 ### Email Analysis and Response Generation

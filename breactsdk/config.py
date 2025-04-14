@@ -4,7 +4,8 @@ Provides central configuration management for the SDK.
 """
 
 import os
-from typing import Optional
+import logging
+from typing import Optional, Union
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -18,6 +19,7 @@ class Configuration:
     DEFAULT_API_VERSION = "v1"
     DEFAULT_TIMEOUT = 30.0
     DEFAULT_POLL_INTERVAL = 1.0
+    DEFAULT_LOG_LEVEL = logging.INFO
     
     def __init__(
         self,
@@ -25,7 +27,8 @@ class Configuration:
         base_url: Optional[str] = None,
         api_version: Optional[str] = None,
         timeout: Optional[float] = None,
-        poll_interval: Optional[float] = None
+        poll_interval: Optional[float] = None,
+        log_level: Optional[Union[int, str]] = None
     ):
         """
         Initialize SDK configuration.
@@ -35,6 +38,7 @@ class Configuration:
         :param api_version: API version to use
         :param timeout: Default timeout for requests
         :param poll_interval: Default polling interval
+        :param log_level: Logging level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
         """
         self.api_key = api_key or os.getenv("BREACT_API_KEY")
         if not self.api_key:
@@ -64,6 +68,22 @@ class Configuration:
             os.getenv("BREACT_POLL_INTERVAL") or 
             self.DEFAULT_POLL_INTERVAL
         )
+
+        # Handle log level configuration
+        self.log_level = self._parse_log_level(
+            log_level or 
+            os.getenv("BREACT_LOG_LEVEL") or 
+            self.DEFAULT_LOG_LEVEL
+        )
+    
+    def _parse_log_level(self, level: Union[int, str]) -> int:
+        """Convert string log level to logging constant if necessary."""
+        if isinstance(level, int):
+            return level
+        try:
+            return getattr(logging, level.upper())
+        except (AttributeError, TypeError):
+            raise ValueError(f"Invalid log level: {level}")
     
     @property
     def api_base_url(self) -> str:
@@ -76,7 +96,8 @@ class Configuration:
         base_url: Optional[str] = None,
         api_version: Optional[str] = None,
         timeout: Optional[float] = None,
-        poll_interval: Optional[float] = None
+        poll_interval: Optional[float] = None,
+        log_level: Optional[Union[int, str]] = None
     ) -> None:
         """
         Update configuration values.
@@ -86,6 +107,7 @@ class Configuration:
         :param api_version: New API version
         :param timeout: New timeout value
         :param poll_interval: New polling interval
+        :param log_level: New logging level
         """
         if api_key is not None:
             self.api_key = api_key
@@ -97,6 +119,5 @@ class Configuration:
             self.timeout = float(timeout)
         if poll_interval is not None:
             self.poll_interval = float(poll_interval)
-
-# Global configuration instance
-config = Configuration() 
+        if log_level is not None:
+            self.log_level = self._parse_log_level(log_level) 
