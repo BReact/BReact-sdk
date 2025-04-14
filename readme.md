@@ -8,6 +8,10 @@ A Python SDK for interacting with BReact's AI services, supporting both synchron
 pip install breactsdk
 ```
 
+## Documentation
+
+See the full documentation at https://github.com/BReact/BReact-sdk
+
 ## Configuration
 
 The SDK can be configured using environment variables or programmatically:
