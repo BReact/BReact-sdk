@@ -4,10 +4,10 @@ import asyncio
 import httpx
 import logging
 from typing import Any, Dict, Optional, Union
-from .config import config
+from .config import Configuration
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
+# Set up logging with default level
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ServiceProxy:
@@ -38,15 +38,11 @@ class AsyncBReactClient:
         :param api_key: API key; if not provided, use the one from config
         :param base_url: Base URL for the API; if not provided, use the one from config
         """
-        if api_key:
-            config.update(api_key=api_key)
-        if base_url:
-            config.update(base_url=base_url)
-
+        self.config = Configuration(api_key=api_key, base_url=base_url)
         self.client = httpx.AsyncClient(
             headers={
                 "Content-Type": "application/json",
-                "x-api-key": config.api_key,
+                "x-api-key": self.config.api_key,
             }
         )
         self._service_cache = {}
@@ -59,6 +55,24 @@ class AsyncBReactClient:
         if service_id not in self._service_cache:
             self._service_cache[service_id] = ServiceProxy(self, service_id)
         return self._service_cache[service_id]
+
+    @property
+    def services(self):
+        """Access service listing functionality."""
+        return self
+
+    async def list(self) -> dict:
+        """
+        List all available services.
+
+        :return: Dictionary containing available services
+        """
+        url = f"{self.config.api_base_url}/services"
+        logger.debug(f"Making request to {url}")
+        
+        response = await self.client.get(url)
+        response.raise_for_status()
+        return response.json()
 
     async def execute_service(
         self,
@@ -80,7 +94,7 @@ class AsyncBReactClient:
         :param timeout: Maximum seconds to wait for completion (overrides config value)
         :return: The final result data, or process details if wait_for_result is False
         """
-        url = f"{config.api_base_url}/services/{service_id}/{endpoint}"
+        url = f"{self.config.api_base_url}/services/{service_id}/{endpoint}"
         logger.debug(f"Making request to {url} with params: {params}")
         
         response = await self.client.post(url, json=params)
@@ -104,8 +118,8 @@ class AsyncBReactClient:
         return await self.poll_result(
             process_id, 
             access_token, 
-            poll_interval or config.poll_interval,
-            timeout or config.timeout
+            poll_interval or self.config.poll_interval,
+            timeout or self.config.timeout
         )
 
     async def poll_result(
@@ -126,11 +140,11 @@ class AsyncBReactClient:
         :raises TimeoutError: if polling times out
         """
         start_time = time.time()
-        poll_url = f"{config.api_base_url}/services/result/{process_id}?access_token={access_token}"
+        poll_url = f"{self.config.api_base_url}/services/result/{process_id}?access_token={access_token}"
         logger.debug(f"Polling URL: {poll_url}")
 
-        poll_interval = poll_interval or config.poll_interval
-        timeout = timeout or config.timeout
+        poll_interval = poll_interval or self.config.poll_interval
+        timeout = timeout or self.config.timeout
 
         while True:
             response = await self.client.get(poll_url)
@@ -170,15 +184,11 @@ class SyncBReactClient:
         :param api_key: API key; if not provided, use the one from config
         :param base_url: Base URL for the API; if not provided, use the one from config
         """
-        if api_key:
-            config.update(api_key=api_key)
-        if base_url:
-            config.update(base_url=base_url)
-
+        self.config = Configuration(api_key=api_key, base_url=base_url)
         self.client = httpx.Client(
             headers={
                 "Content-Type": "application/json",
-                "x-api-key": config.api_key,
+                "x-api-key": self.config.api_key,
             }
         )
         self._service_cache = {}
@@ -191,6 +201,24 @@ class SyncBReactClient:
         if service_id not in self._service_cache:
             self._service_cache[service_id] = ServiceProxy(self, service_id)
         return self._service_cache[service_id]
+
+    @property
+    def services(self):
+        """Access service listing functionality."""
+        return self
+
+    def list(self) -> dict:
+        """
+        List all available services.
+
+        :return: Dictionary containing available services
+        """
+        url = f"{self.config.api_base_url}/services"
+        logger.debug(f"Making request to {url}")
+        
+        response = self.client.get(url)
+        response.raise_for_status()
+        return response.json()
 
     def execute_service(
         self,
@@ -212,7 +240,7 @@ class SyncBReactClient:
         :param timeout: Maximum seconds to wait for the result (overrides config value)
         :return: Final result data, or process details if wait_for_result is False
         """
-        url = f"{config.api_base_url}/services/{service_id}/{endpoint}"
+        url = f"{self.config.api_base_url}/services/{service_id}/{endpoint}"
         logger.debug(f"Making request to {url} with params: {params}")
         
         response = self.client.post(url, json=params)
@@ -236,8 +264,8 @@ class SyncBReactClient:
         return self.poll_result(
             process_id, 
             access_token, 
-            poll_interval or config.poll_interval,
-            timeout or config.timeout
+            poll_interval or self.config.poll_interval,
+            timeout or self.config.timeout
         )
 
     def poll_result(
@@ -258,11 +286,11 @@ class SyncBReactClient:
         :raises TimeoutError: if the result is not available within the timeout
         """
         start_time = time.time()
-        poll_url = f"{config.api_base_url}/services/result/{process_id}?access_token={access_token}"
+        poll_url = f"{self.config.api_base_url}/services/result/{process_id}?access_token={access_token}"
         logger.debug(f"Polling URL: {poll_url}")
 
-        poll_interval = poll_interval or config.poll_interval
-        timeout = timeout or config.timeout
+        poll_interval = poll_interval or self.config.poll_interval
+        timeout = timeout or self.config.timeout
 
         while True:
             response = self.client.get(poll_url)
